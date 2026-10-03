@@ -76,22 +76,50 @@ jobs:
               except ValueError:
                   return False
 
+          def normalize_ip(value):
+              """
+              Normalize IPv4/IPv6 so duplicate IPs
+              are detected correctly.
+              """
+              try:
+                  return str(
+                      ipaddress.ip_address(
+                          str(value).strip()
+                      )
+                  )
+              except ValueError:
+                  return None
+
           def encode_ss(method, password):
               userinfo = f"{method}:{password}"
+
               return base64.urlsafe_b64encode(
                   userinfo.encode()
               ).decode().rstrip("=")
 
           req = urllib.request.Request(
               API,
-              headers={"User-Agent": "Outline-Updater"}
+              headers={
+                  "User-Agent": "Outline-Updater"
+              }
           )
 
-          with urllib.request.urlopen(req, timeout=30) as response:
+          with urllib.request.urlopen(
+              req,
+              timeout=30
+          ) as response:
               files = json.load(response)
 
           servers = []
-          seen = set()
+
+          # IMPORTANT:
+          # This contains ONLY IP addresses.
+          # If an IP already exists, every later
+          # configuration using that IP is ignored.
+          seen_ips = set()
+
+          skipped_duplicates = 0
+          skipped_hostnames = 0
 
           for file in files:
 
@@ -103,12 +131,16 @@ jobs:
               if not filename.endswith(".json"):
                   continue
 
-              country = filename[len("singbox-"):-5].upper()
+              country = filename[
+                  len("singbox-"):-5
+              ].upper()
 
               try:
                   req = urllib.request.Request(
                       file["download_url"],
-                      headers={"User-Agent": "Outline-Updater"}
+                      headers={
+                          "User-Agent": "Outline-Updater"
+                      }
                   )
 
                   with urllib.request.urlopen(
@@ -118,66 +150,138 @@ jobs:
                       data = json.load(response)
 
               except Exception as e:
-                  print(f"Failed to download {filename}: {e}")
+                  print(
+                      f"Failed to download "
+                      f"{filename}: {e}"
+                  )
                   continue
 
-              for node in data.get("outbounds", []):
+              for node in data.get(
+                  "outbounds",
+                  []
+              ):
 
                   # Shadowsocks only
-                  if node.get("type") != "shadowsocks":
+                  if node.get(
+                      "type"
+                  ) != "shadowsocks":
                       continue
 
-                  server = node.get("server")
-                  port = node.get("server_port")
-                  method = node.get("method")
-                  password = node.get("password")
+                  server = node.get(
+                      "server"
+                  )
 
-                  if not server or not port or not method or not password:
+                  port = node.get(
+                      "server_port"
+                  )
+
+                  method = node.get(
+                      "method"
+                  )
+
+                  password = node.get(
+                      "password"
+                  )
+
+                  if (
+                      not server
+                      or not port
+                      or not method
+                      or not password
+                  ):
                       continue
 
-                  server = str(server).strip()
+                  server = str(
+                      server
+                  ).strip()
 
-                  # Ignore hostnames.
-                  # Only IPv4 and IPv6 are accepted.
-                  if not is_ip(server):
-                      print(f"Skipping hostname: {server}")
+                  # ------------------------------------------------
+                  # Only real IPv4 / IPv6 addresses.
+                  # Hostnames are completely ignored.
+                  # ------------------------------------------------
+
+                  normalized_ip = normalize_ip(
+                      server
+                  )
+
+                  if normalized_ip is None:
+                      skipped_hostnames += 1
+
+                      print(
+                          f"Skipping hostname: "
+                          f"{server}"
+                      )
+
                       continue
+
+                  # ------------------------------------------------
+                  # IMPORTANT:
+                  # One IP = one server.
+                  #
+                  # Even if the same IP has:
+                  # - another port
+                  # - another password
+                  # - another method
+                  #
+                  # it will NOT be added again.
+                  # ------------------------------------------------
+
+                  if normalized_ip in seen_ips:
+
+                      skipped_duplicates += 1
+
+                      print(
+                          f"Skipping duplicate IP: "
+                          f"{normalized_ip}"
+                      )
+
+                      continue
+
+                  seen_ips.add(
+                      normalized_ip
+                  )
 
                   try:
                       port = int(port)
-                  except (ValueError, TypeError):
+
+                  except (
+                      ValueError,
+                      TypeError
+                  ):
                       continue
 
-                  if port < 1 or port > 65535:
+                  if (
+                      port < 1
+                      or port > 65535
+                  ):
                       continue
 
-                  method = str(method).strip()
-                  password = str(password)
+                  method = str(
+                      method
+                  ).strip()
 
-                  # IPv6 needs brackets in ss:// URI
-                  host = server
-
-                  try:
-                      parsed_ip = ipaddress.ip_address(server)
-
-                      if parsed_ip.version == 6:
-                          host = f"[{server}]"
-
-                  except ValueError:
-                      continue
-
-                  # Duplicate detection
-                  key = (
-                      server,
-                      port,
-                      method,
+                  password = str(
                       password
                   )
 
-                  if key in seen:
-                      continue
+                  # ------------------------------------------------
+                  # IPv6 requires brackets in ss:// URI.
+                  # ------------------------------------------------
 
-                  seen.add(key)
+                  try:
+                      parsed_ip = ipaddress.ip_address(
+                          normalized_ip
+                      )
+
+                      if parsed_ip.version == 6:
+                          host = (
+                              f"[{normalized_ip}]"
+                          )
+                      else:
+                          host = normalized_ip
+
+                  except ValueError:
+                      continue
 
                   encoded = encode_ss(
                       method,
@@ -191,26 +295,38 @@ jobs:
 
                   servers.append({
                       "countryCode": country.lower(),
-                      "config": uri
+                      "config": uri,
+                      "ip": normalized_ip
                   })
 
-          # Sort servers
+          # --------------------------------------------------------
+          # Sort by country, then IP.
+          # --------------------------------------------------------
+
           servers.sort(
               key=lambda x: (
                   x["countryCode"],
-                  x["config"]
+                  x["ip"]
               )
           )
 
-          # Number servers per country
+          # --------------------------------------------------------
+          # Number servers per country.
+          # --------------------------------------------------------
+
           counters = {}
 
           for server in servers:
 
-              country = server["countryCode"]
+              country = server[
+                  "countryCode"
+              ]
 
               counters[country] = (
-                  counters.get(country, 0) + 1
+                  counters.get(
+                      country,
+                      0
+                  ) + 1
               )
 
               country_name = country_names.get(
@@ -223,12 +339,17 @@ jobs:
                   f"{counters[country]}"
               )
 
-          # Build final JSON
+          # --------------------------------------------------------
+          # Build final JSON.
+          # --------------------------------------------------------
+
           final_servers = []
 
           for server in servers:
 
-              country = server["countryCode"]
+              country = server[
+                  "countryCode"
+              ]
 
               country_name = country_names.get(
                   country.upper(),
@@ -237,14 +358,21 @@ jobs:
 
               final_servers.append({
                   "name": server["name"],
-                  "config": server["config"]
-                  + "#"
-                  + country_name,
+                  "config": (
+                      server["config"]
+                      + "#"
+                      + country_name
+                  ),
                   "countryCode": country
               })
 
+          # --------------------------------------------------------
           # Save services.json
-          Path("services.json").write_text(
+          # --------------------------------------------------------
+
+          Path(
+              "services.json"
+          ).write_text(
               json.dumps(
                   final_servers,
                   ensure_ascii=False,
@@ -253,12 +381,30 @@ jobs:
               encoding="utf-8"
           )
 
+          print("")
+          print("==============================")
           print(
-              f"Total Outline/Shadowsocks servers: "
+              "Total unique IPs: "
               f"{len(final_servers)}"
           )
+          print(
+              "Skipped duplicate IPs: "
+              f"{skipped_duplicates}"
+          )
+          print(
+              "Skipped hostnames: "
+              f"{skipped_hostnames}"
+          )
+          print("==============================")
+          print("")
 
           PY
+
+      - name: Show generated JSON
+        run: |
+          echo "================ services.json ================"
+          cat services.json
+          echo "================================================"
 
       - name: Commit changes
         run: |
