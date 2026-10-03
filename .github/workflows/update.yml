@@ -1,0 +1,306 @@
+name: Update Outline Servers
+
+on:
+  schedule:
+    - cron: "30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: update-outline
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download and build Outline list
+        run: |
+          python3 <<'PY'
+          import json
+          import urllib.request
+          import base64
+          import ipaddress
+          from pathlib import Path
+
+          API = "https://api.github.com/repos/Au1rxx/free-vpn-subscriptions/contents/output/by-country"
+
+          country_names = {
+              "US": "United States",
+              "JP": "Japan",
+              "DE": "Germany",
+              "GB": "United Kingdom",
+              "FR": "France",
+              "NL": "Netherlands",
+              "CA": "Canada",
+              "SG": "Singapore",
+              "HK": "Hong Kong",
+              "KR": "South Korea",
+              "TW": "Taiwan",
+              "RU": "Russia",
+              "FI": "Finland",
+              "SE": "Sweden",
+              "CH": "Switzerland",
+              "PL": "Poland",
+              "AU": "Australia",
+              "IN": "India",
+              "TR": "Turkey",
+              "BR": "Brazil",
+              "IT": "Italy",
+              "ES": "Spain",
+              "NO": "Norway",
+              "DK": "Denmark",
+              "BE": "Belgium",
+              "AT": "Austria",
+              "CZ": "Czech Republic",
+              "RO": "Romania",
+              "UA": "Ukraine",
+              "IL": "Israel",
+              "AE": "United Arab Emirates",
+              "ID": "Indonesia",
+              "ZA": "South Africa"
+          }
+
+          def is_ip(value):
+              try:
+                  ipaddress.ip_address(str(value))
+                  return True
+              except ValueError:
+                  return False
+
+          def encode_ss(method, password):
+              userinfo = f"{method}:{password}"
+              return base64.urlsafe_b64encode(
+                  userinfo.encode()
+              ).decode().rstrip("=")
+
+          req = urllib.request.Request(
+              API,
+              headers={"User-Agent": "Outline-Updater"}
+          )
+
+          with urllib.request.urlopen(req, timeout=30) as response:
+              files = json.load(response)
+
+          servers = []
+          seen = set()
+
+          for file in files:
+
+              filename = file.get("name", "")
+
+              if not filename.startswith("singbox-"):
+                  continue
+
+              if not filename.endswith(".json"):
+                  continue
+
+              country = filename[len("singbox-"):-5].upper()
+
+              try:
+                  req = urllib.request.Request(
+                      file["download_url"],
+                      headers={"User-Agent": "Outline-Updater"}
+                  )
+
+                  with urllib.request.urlopen(
+                      req,
+                      timeout=30
+                  ) as response:
+                      data = json.load(response)
+
+              except Exception as e:
+                  print(f"Failed to download {filename}: {e}")
+                  continue
+
+              for node in data.get("outbounds", []):
+
+                  # Shadowsocks only
+                  if node.get("type") != "shadowsocks":
+                      continue
+
+                  server = node.get("server")
+                  port = node.get("server_port")
+                  method = node.get("method")
+                  password = node.get("password")
+
+                  if not server or not port or not method or not password:
+                      continue
+
+                  server = str(server).strip()
+
+                  # Ignore hostnames.
+                  # Only IPv4 and IPv6 are accepted.
+                  if not is_ip(server):
+                      print(f"Skipping hostname: {server}")
+                      continue
+
+                  try:
+                      port = int(port)
+                  except (ValueError, TypeError):
+                      continue
+
+                  if port < 1 or port > 65535:
+                      continue
+
+                  method = str(method).strip()
+                  password = str(password)
+
+                  # IPv6 needs brackets in ss:// URI
+                  host = server
+
+                  try:
+                      parsed_ip = ipaddress.ip_address(server)
+
+                      if parsed_ip.version == 6:
+                          host = f"[{server}]"
+
+                  except ValueError:
+                      continue
+
+                  # Duplicate detection
+                  key = (
+                      server,
+                      port,
+                      method,
+                      password
+                  )
+
+                  if key in seen:
+                      continue
+
+                  seen.add(key)
+
+                  encoded = encode_ss(
+                      method,
+                      password
+                  )
+
+                  uri = (
+                      f"ss://{encoded}"
+                      f"@{host}:{port}"
+                  )
+
+                  servers.append({
+                      "countryCode": country.lower(),
+                      "config": uri
+                  })
+
+          # Sort servers
+          servers.sort(
+              key=lambda x: (
+                  x["countryCode"],
+                  x["config"]
+              )
+          )
+
+          # Number servers per country
+          counters = {}
+
+          for server in servers:
+
+              country = server["countryCode"]
+
+              counters[country] = (
+                  counters.get(country, 0) + 1
+              )
+
+              country_name = country_names.get(
+                  country.upper(),
+                  country.upper()
+              )
+
+              server["name"] = (
+                  f"{country_name} "
+                  f"{counters[country]}"
+              )
+
+          # Build final JSON
+          final_servers = []
+
+          for server in servers:
+
+              country = server["countryCode"]
+
+              country_name = country_names.get(
+                  country.upper(),
+                  country.upper()
+              )
+
+              final_servers.append({
+                  "name": server["name"],
+                  "config": server["config"]
+                  + "#"
+                  + country_name,
+                  "countryCode": country
+              })
+
+          # Save services.json
+          Path("services.json").write_text(
+              json.dumps(
+                  final_servers,
+                  ensure_ascii=False,
+                  indent=2
+              ) + "\n",
+              encoding="utf-8"
+          )
+
+          print(
+              f"Total Outline/Shadowsocks servers: "
+              f"{len(final_servers)}"
+          )
+
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add services.json
+
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+            exit 0
+          fi
+
+          git commit -m "Update Outline servers"
+
+      - name: Push changes
+        run: |
+          for i in 1 2 3 4 5; do
+
+            echo "Push attempt $i..."
+
+            git fetch origin main
+
+            git rebase origin/main || {
+              echo "Rebase failed."
+              git rebase --abort || true
+              exit 1
+            }
+
+            if git push origin HEAD:main; then
+              echo "Push successful."
+              exit 0
+            fi
+
+            echo "Push failed."
+
+            if [ "$i" -lt 5 ]; then
+              echo "Retrying in 3 seconds..."
+              sleep 3
+            fi
+
+          done
+
+          echo "Push failed after 5 attempts."
+          exit 1
