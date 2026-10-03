@@ -69,23 +69,10 @@ jobs:
               "ZA": "South Africa"
           }
 
-          def is_ip(value):
-              try:
-                  ipaddress.ip_address(str(value))
-                  return True
-              except ValueError:
-                  return False
-
           def normalize_ip(value):
-              """
-              Normalize IPv4/IPv6 so duplicate IPs
-              are detected correctly.
-              """
               try:
-                  return str(
-                      ipaddress.ip_address(
-                          str(value).strip()
-                      )
+                  return ipaddress.ip_address(
+                      str(value).strip()
                   )
               except ValueError:
                   return None
@@ -96,6 +83,10 @@ jobs:
               return base64.urlsafe_b64encode(
                   userinfo.encode()
               ).decode().rstrip("=")
+
+          # ----------------------------------------
+          # Download country files
+          # ----------------------------------------
 
           req = urllib.request.Request(
               API,
@@ -113,13 +104,16 @@ jobs:
           servers = []
 
           # IMPORTANT:
-          # This contains ONLY IP addresses.
-          # If an IP already exists, every later
-          # configuration using that IP is ignored.
+          # One IP = one server.
           seen_ips = set()
 
           skipped_duplicates = 0
           skipped_hostnames = 0
+          skipped_invalid_ports = 0
+
+          # ----------------------------------------
+          # Process source files
+          # ----------------------------------------
 
           for file in files:
 
@@ -155,6 +149,10 @@ jobs:
                       f"{filename}: {e}"
                   )
                   continue
+
+              # ------------------------------------
+              # Process outbounds
+              # ------------------------------------
 
               for node in data.get(
                   "outbounds",
@@ -195,16 +193,17 @@ jobs:
                       server
                   ).strip()
 
-                  # ------------------------------------------------
-                  # Only real IPv4 / IPv6 addresses.
-                  # Hostnames are completely ignored.
-                  # ------------------------------------------------
+                  # --------------------------------
+                  # Validate IP
+                  # --------------------------------
 
-                  normalized_ip = normalize_ip(
+                  parsed_ip = normalize_ip(
                       server
                   )
 
-                  if normalized_ip is None:
+                  # Hostnames are not accepted
+                  if parsed_ip is None:
+
                       skipped_hostnames += 1
 
                       print(
@@ -214,17 +213,50 @@ jobs:
 
                       continue
 
-                  # ------------------------------------------------
-                  # IMPORTANT:
-                  # One IP = one server.
-                  #
-                  # Even if the same IP has:
-                  # - another port
-                  # - another password
-                  # - another method
-                  #
-                  # it will NOT be added again.
-                  # ------------------------------------------------
+                  normalized_ip = str(
+                      parsed_ip
+                  )
+
+                  # --------------------------------
+                  # Validate port FIRST
+                  # --------------------------------
+
+                  try:
+                      port = int(port)
+
+                  except (
+                      ValueError,
+                      TypeError
+                  ):
+
+                      skipped_invalid_ports += 1
+
+                      print(
+                          f"Skipping invalid port "
+                          f"for {normalized_ip}: "
+                          f"{port}"
+                      )
+
+                      continue
+
+                  if (
+                      port < 1
+                      or port > 65535
+                  ):
+
+                      skipped_invalid_ports += 1
+
+                      print(
+                          f"Skipping invalid port "
+                          f"for {normalized_ip}: "
+                          f"{port}"
+                      )
+
+                      continue
+
+                  # --------------------------------
+                  # One IP = one server
+                  # --------------------------------
 
                   if normalized_ip in seen_ips:
 
@@ -241,20 +273,9 @@ jobs:
                       normalized_ip
                   )
 
-                  try:
-                      port = int(port)
-
-                  except (
-                      ValueError,
-                      TypeError
-                  ):
-                      continue
-
-                  if (
-                      port < 1
-                      or port > 65535
-                  ):
-                      continue
+                  # --------------------------------
+                  # Prepare method/password
+                  # --------------------------------
 
                   method = str(
                       method
@@ -264,24 +285,23 @@ jobs:
                       password
                   )
 
-                  # ------------------------------------------------
-                  # IPv6 requires brackets in ss:// URI.
-                  # ------------------------------------------------
+                  # --------------------------------
+                  # IPv6 formatting
+                  # --------------------------------
 
-                  try:
-                      parsed_ip = ipaddress.ip_address(
-                          normalized_ip
+                  if parsed_ip.version == 6:
+
+                      host = (
+                          f"[{normalized_ip}]"
                       )
 
-                      if parsed_ip.version == 6:
-                          host = (
-                              f"[{normalized_ip}]"
-                          )
-                      else:
-                          host = normalized_ip
+                  else:
 
-                  except ValueError:
-                      continue
+                      host = normalized_ip
+
+                  # --------------------------------
+                  # Build Shadowsocks URI
+                  # --------------------------------
 
                   encoded = encode_ss(
                       method,
@@ -299,9 +319,9 @@ jobs:
                       "ip": normalized_ip
                   })
 
-          # --------------------------------------------------------
-          # Sort by country, then IP.
-          # --------------------------------------------------------
+          # ----------------------------------------
+          # Sort by country and IP
+          # ----------------------------------------
 
           servers.sort(
               key=lambda x: (
@@ -310,9 +330,9 @@ jobs:
               )
           )
 
-          # --------------------------------------------------------
-          # Number servers per country.
-          # --------------------------------------------------------
+          # ----------------------------------------
+          # Number servers per country
+          # ----------------------------------------
 
           counters = {}
 
@@ -339,9 +359,9 @@ jobs:
                   f"{counters[country]}"
               )
 
-          # --------------------------------------------------------
-          # Build final JSON.
-          # --------------------------------------------------------
+          # ----------------------------------------
+          # Build final JSON
+          # ----------------------------------------
 
           final_servers = []
 
@@ -366,9 +386,9 @@ jobs:
                   "countryCode": country
               })
 
-          # --------------------------------------------------------
+          # ----------------------------------------
           # Save services.json
-          # --------------------------------------------------------
+          # ----------------------------------------
 
           Path(
               "services.json"
@@ -380,6 +400,10 @@ jobs:
               ) + "\n",
               encoding="utf-8"
           )
+
+          # ----------------------------------------
+          # Statistics
+          # ----------------------------------------
 
           print("")
           print("==============================")
@@ -394,6 +418,10 @@ jobs:
           print(
               "Skipped hostnames: "
               f"{skipped_hostnames}"
+          )
+          print(
+              "Skipped invalid ports: "
+              f"{skipped_invalid_ports}"
           )
           print("==============================")
           print("")
