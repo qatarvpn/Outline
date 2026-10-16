@@ -36,27 +36,42 @@
   },
   {
     "name": "Canada 6",
-    "config": "ss://YWVzLTI1Ni1nY206a0RXdlhZWm9UQmNHa0M0@51.222.136.236:8882#Canada",
+    "config": "ss://YWVzLTI1Ni1nY206ekROVmVkUkZQUWV4Rzl2@51.222.12.127:445#Canada",
     "countryCode": "ca"
   },
   {
     "name": "Canada 7",
-    "config": "ss://YWVzLTI1Ni1nY206WTZSOXBBdHZ4eHptR0M@51.222.200.165:5000#Canada",
+    "config": "ss://YWVzLTI1Ni1nY206a0RXdlhZWm9UQmNHa0M0@51.222.136.236:8882#Canada",
     "countryCode": "ca"
   },
   {
     "name": "Canada 8",
-    "config": "ss://YWVzLTI1Ni1nY206a0RXdlhZWm9UQmNHa0M0@51.79.49.116:8882#Canada",
+    "config": "ss://YWVzLTI1Ni1nY206ekROVmVkUkZQUWV4Rzl2@51.222.141.125:445#Canada",
     "countryCode": "ca"
   },
   {
     "name": "Canada 9",
-    "config": "ss://YWVzLTEyOC1nY206NGVmZTFhZjI3MmU3MjkyMTM5Yjg4OWY2YTYzZWUwNzE@64.74.163.67:18764#Canada",
+    "config": "ss://YWVzLTI1Ni1nY206WTZSOXBBdHZ4eHptR0M@51.222.155.113:5601#Canada",
     "countryCode": "ca"
   },
   {
     "name": "Canada 10",
-    "config": "ss://YWVzLTEyOC1nY206NGVmZTFhZjI3MmU3MjkyMTM5Yjg4OWY2YTYzZWUwNzE@64.74.163.69:18766#Canada",
+    "config": "ss://YWVzLTI1Ni1nY206WTZSOXBBdHZ4eHptR0M@51.222.200.165:5000#Canada",
+    "countryCode": "ca"
+  },
+  {
+    "name": "Canada 11",
+    "config": "ss://YWVzLTI1Ni1nY206a0RXdlhZWm9UQmNHa0M0@51.79.49.116:8882#Canada",
+    "countryCode": "ca"
+  },
+  {
+    "name": "Canada 12",
+    "config": "ss://YWVzLTI1Ni1nY206Y2RCSURWNDJEQ3duZklO@51.79.85.185:8118#Canada",
+    "countryCode": "ca"
+  },
+  {
+    "name": "Canada 13",
+    "config": "ss://YWVzLTEyOC1nY206NGVmZTFhZjI3MmU3MjkyMTM5Yjg4OWY2YTYzZWUwNzE@64.74.163.67:18764#Canada",
     "countryCode": "ca"
   },
   {
@@ -166,36 +181,31 @@
   },
   {
     "name": "Japan 1",
-    "config": "ss://YWVzLTI1Ni1nY206NkVnaVV6eHg5UmVYanVBaA@103.115.18.181:8388#Japan",
-    "countryCode": "jp"
-  },
-  {
-    "name": "Japan 2",
     "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@149.22.87.204:443#Japan",
     "countryCode": "jp"
   },
   {
-    "name": "Japan 3",
+    "name": "Japan 2",
     "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@149.22.87.240:443#Japan",
     "countryCode": "jp"
   },
   {
-    "name": "Japan 4",
+    "name": "Japan 3",
     "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@149.22.87.241:443#Japan",
     "countryCode": "jp"
   },
   {
-    "name": "Japan 5",
+    "name": "Japan 4",
     "config": "ss://YWVzLTI1Ni1nY206QmVhVWY5YzBBRVdINDBQdQ@154.36.158.197:8388#Japan",
     "countryCode": "jp"
   },
   {
-    "name": "Japan 6",
+    "name": "Japan 5",
     "config": "ss://YWVzLTI1Ni1nY206SnVENk1OZ3RYM25WcEN6RnpYWVZZakRUWjduc21hVHY@191.223.221.53:8388#Japan",
     "countryCode": "jp"
   },
   {
-    "name": "Japan 7",
+    "name": "Japan 6",
     "config": "ss://YWVzLTI1Ni1nY206M2VPRmVOc3NkZTdQWVlNdg@84.247.155.196:443#Japan",
     "countryCode": "jp"
   },
@@ -223,6 +233,11 @@
     "name": "LT 1",
     "config": "ss://YWVzLTI1Ni1jZmI6TTN0MlpFUWNNR1JXQmpSYQ@195.238.126.20:9011#LT",
     "countryCode": "lt"
+  },
+  {
+    "name": "LV 1",
+    "config": "ss://YWVzLTI1Ni1jZmI6NDV4Z01nbTM4NnBqV2pUeA@185.135.86.175:9082#LV",
+    "countryCode": "lv"
   },
   {
     "name": "Netherlands 1",
@@ -705,6 +720,11 @@
     "countryCode": "nl"
   },
   {
+    "name": "Norway 1",
+    "config": "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpBUmd2R1p5d0ErZ2FjZ0dWMjZCdm11MDUrd1ptUlcvaitBZFUrWjhCdDQ0PQ@185.213.23.63:990#Norway",
+    "countryCode": "no"
+  },
+  {
     "name": "Poland 1",
     "config": "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTplNWM2NXBo@54.36.174.134:443#Poland",
     "countryCode": "pl"
@@ -751,21 +771,26 @@
   },
   {
     "name": "Singapore 4",
-    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@68.183.227.236:8080#Singapore",
+    "config": "ss://YWVzLTI1Ni1nY206cXBTZXZLYVVYWVFLdlNqcA@139.180.220.175:8388#Singapore",
     "countryCode": "sg"
   },
   {
     "name": "Singapore 5",
-    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@68.183.227.4:8080#Singapore",
+    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@68.183.227.236:8080#Singapore",
     "countryCode": "sg"
   },
   {
     "name": "Singapore 6",
-    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@68.183.227.45:8080#Singapore",
+    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@68.183.227.4:8080#Singapore",
     "countryCode": "sg"
   },
   {
     "name": "Singapore 7",
+    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@68.183.227.45:8080#Singapore",
+    "countryCode": "sg"
+  },
+  {
+    "name": "Singapore 8",
     "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@68.183.235.122:8080#Singapore",
     "countryCode": "sg"
   },
@@ -831,76 +856,81 @@
   },
   {
     "name": "United States 12",
-    "config": "ss://YWVzLTI1Ni1nY206cEtFVzhKUEJ5VFZUTHRN@15.204.247.206:4444#United States",
+    "config": "ss://YWVzLTI1Ni1nY206WEtGS2wyclVMaklwNzQ@15.204.247.175:8008#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 13",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.167:443#United States",
+    "config": "ss://YWVzLTI1Ni1nY206cEtFVzhKUEJ5VFZUTHRN@15.204.247.206:4444#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 14",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.168:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.167:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 15",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.169:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.168:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 16",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.170:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.169:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 17",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@173.244.56.6:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@156.146.38.170:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 18",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@173.244.56.9:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@173.244.56.6:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 19",
-    "config": "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTplRGZON1NPRFFjZUlPbUlBYnRKSnRL@198.98.53.130:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@173.244.56.9:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 20",
-    "config": "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpiUVpsN0hEeFNhYnIxRnVyVFlRSEZV@216.105.168.18:443#United States",
+    "config": "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTplRGZON1NPRFFjZUlPbUlBYnRKSnRL@198.98.53.130:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 21",
-    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@23.251.121.242:8080#United States",
+    "config": "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpiUVpsN0hEeFNhYnIxRnVyVFlRSEZV@216.105.168.18:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 22",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.160:443#United States",
+    "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@23.251.121.242:8080#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 23",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.236:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.160:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 24",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.243:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.236:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 25",
-    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.244:443#United States",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.243:443#United States",
     "countryCode": "us"
   },
   {
     "name": "United States 26",
+    "config": "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M@37.19.198.244:443#United States",
+    "countryCode": "us"
+  },
+  {
+    "name": "United States 27",
     "config": "ss://cmM0LW1kNToxNGZGUHJiZXpFM0hEWnpzTU9yNg@79.110.53.169:8080#United States",
     "countryCode": "us"
   },
