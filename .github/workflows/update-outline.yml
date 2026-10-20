@@ -1,480 +1,121 @@
-name: Update Outline Servers
+name: Build Debug APK
 
 on:
-  schedule:
-    - cron: "30 * * * *"
-  workflow_dispatch:
-
-concurrency:
-  group: update-outline
-  cancel-in-progress: true
+workflow_dispatch:
+inputs:
+run_tests:
+description: "Run unit tests before building"
+type: boolean
+default: true
+push:
+paths:
+- "*.zip"
+- ".github/workflows/build-apk.yml"
 
 permissions:
-  contents: write
+contents: read
 
 jobs:
-  update:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download and build Outline list
-        run: |
-          python3 <<'PY'
-          import json
-          import urllib.request
-          import base64
-          import ipaddress
-          from pathlib import Path
-
-          API = "https://api.github.com/repos/Au1rxx/free-vpn-subscriptions/contents/output/by-country"
-
-          country_names = {
-              "US": "United States",
-              "JP": "Japan",
-              "DE": "Germany",
-              "GB": "United Kingdom",
-              "FR": "France",
-              "NL": "Netherlands",
-              "CA": "Canada",
-              "SG": "Singapore",
-              "HK": "Hong Kong",
-              "KR": "South Korea",
-              "TW": "Taiwan",
-              "RU": "Russia",
-              "FI": "Finland",
-              "SE": "Sweden",
-              "CH": "Switzerland",
-              "PL": "Poland",
-              "AU": "Australia",
-              "IN": "India",
-              "TR": "Turkey",
-              "BR": "Brazil",
-              "IT": "Italy",
-              "ES": "Spain",
-              "NO": "Norway",
-              "DK": "Denmark",
-              "BE": "Belgium",
-              "AT": "Austria",
-              "CZ": "Czech Republic",
-              "RO": "Romania",
-              "UA": "Ukraine",
-              "IL": "Israel",
-              "AE": "United Arab Emirates",
-              "ID": "Indonesia",
-              "ZA": "South Africa"
-          }
-
-          def normalize_ip(value):
-              try:
-                  return ipaddress.ip_address(
-                      str(value).strip()
-                  )
-              except ValueError:
-                  return None
-
-          def encode_ss(method, password):
-              userinfo = f"{method}:{password}"
-
-              return base64.urlsafe_b64encode(
-                  userinfo.encode()
-              ).decode().rstrip("=")
-
-          # ----------------------------------------
-          # Download country files
-          # ----------------------------------------
-
-          req = urllib.request.Request(
-              API,
-              headers={
-                  "User-Agent": "Outline-Updater"
-              }
-          )
-
-          with urllib.request.urlopen(
-              req,
-              timeout=30
-          ) as response:
-              files = json.load(response)
-
-          servers = []
-
-          # IMPORTANT:
-          # One IP = one server.
-          seen_ips = set()
-
-          skipped_duplicates = 0
-          skipped_hostnames = 0
-          skipped_invalid_ports = 0
-
-          # ----------------------------------------
-          # Process source files
-          # ----------------------------------------
-
-          for file in files:
-
-              filename = file.get("name", "")
-
-              if not filename.startswith("singbox-"):
-                  continue
-
-              if not filename.endswith(".json"):
-                  continue
-
-              country = filename[
-                  len("singbox-"):-5
-              ].upper()
-
-              try:
-                  req = urllib.request.Request(
-                      file["download_url"],
-                      headers={
-                          "User-Agent": "Outline-Updater"
-                      }
-                  )
-
-                  with urllib.request.urlopen(
-                      req,
-                      timeout=30
-                  ) as response:
-                      data = json.load(response)
-
-              except Exception as e:
-                  print(
-                      f"Failed to download "
-                      f"{filename}: {e}"
-                  )
-                  continue
-
-              # ------------------------------------
-              # Process outbounds
-              # ------------------------------------
-
-              for node in data.get(
-                  "outbounds",
-                  []
-              ):
-
-                  # Shadowsocks only
-                  if node.get(
-                      "type"
-                  ) != "shadowsocks":
-                      continue
-
-                  server = node.get(
-                      "server"
-                  )
-
-                  port = node.get(
-                      "server_port"
-                  )
-
-                  method = node.get(
-                      "method"
-                  )
-
-                  password = node.get(
-                      "password"
-                  )
-
-                  if (
-                      not server
-                      or not port
-                      or not method
-                      or not password
-                  ):
-                      continue
-
-                  server = str(
-                      server
-                  ).strip()
-
-                  # --------------------------------
-                  # Validate IP
-                  # --------------------------------
-
-                  parsed_ip = normalize_ip(
-                      server
-                  )
-
-                  # Hostnames are not accepted
-                  if parsed_ip is None:
-
-                      skipped_hostnames += 1
-
-                      print(
-                          f"Skipping hostname: "
-                          f"{server}"
-                      )
-
-                      continue
-
-                  normalized_ip = str(
-                      parsed_ip
-                  )
-
-                  # --------------------------------
-                  # Validate port FIRST
-                  # --------------------------------
-
-                  try:
-                      port = int(port)
-
-                  except (
-                      ValueError,
-                      TypeError
-                  ):
-
-                      skipped_invalid_ports += 1
-
-                      print(
-                          f"Skipping invalid port "
-                          f"for {normalized_ip}: "
-                          f"{port}"
-                      )
-
-                      continue
-
-                  if (
-                      port < 1
-                      or port > 65535
-                  ):
-
-                      skipped_invalid_ports += 1
-
-                      print(
-                          f"Skipping invalid port "
-                          f"for {normalized_ip}: "
-                          f"{port}"
-                      )
-
-                      continue
-
-                  # --------------------------------
-                  # One IP = one server
-                  # --------------------------------
-
-                  if normalized_ip in seen_ips:
-
-                      skipped_duplicates += 1
-
-                      print(
-                          f"Skipping duplicate IP: "
-                          f"{normalized_ip}"
-                      )
-
-                      continue
-
-                  seen_ips.add(
-                      normalized_ip
-                  )
-
-                  # --------------------------------
-                  # Prepare method/password
-                  # --------------------------------
-
-                  method = str(
-                      method
-                  ).strip()
-
-                  password = str(
-                      password
-                  )
-
-                  # --------------------------------
-                  # IPv6 formatting
-                  # --------------------------------
-
-                  if parsed_ip.version == 6:
-
-                      host = (
-                          f"[{normalized_ip}]"
-                      )
-
-                  else:
-
-                      host = normalized_ip
-
-                  # --------------------------------
-                  # Build Shadowsocks URI
-                  # --------------------------------
-
-                  encoded = encode_ss(
-                      method,
-                      password
-                  )
-
-                  uri = (
-                      f"ss://{encoded}"
-                      f"@{host}:{port}"
-                  )
-
-                  servers.append({
-                      "countryCode": country.lower(),
-                      "config": uri,
-                      "ip": normalized_ip
-                  })
-
-          # ----------------------------------------
-          # Sort by country and IP
-          # ----------------------------------------
-
-          servers.sort(
-              key=lambda x: (
-                  x["countryCode"],
-                  x["ip"]
-              )
-          )
-
-          # ----------------------------------------
-          # Number servers per country
-          # ----------------------------------------
-
-          counters = {}
-
-          for server in servers:
-
-              country = server[
-                  "countryCode"
-              ]
-
-              counters[country] = (
-                  counters.get(
-                      country,
-                      0
-                  ) + 1
-              )
-
-              country_name = country_names.get(
-                  country.upper(),
-                  country.upper()
-              )
-
-              server["name"] = (
-                  f"{country_name} "
-                  f"{counters[country]}"
-              )
-
-          # ----------------------------------------
-          # Build final JSON
-          # ----------------------------------------
-
-          final_servers = []
-
-          for server in servers:
-
-              country = server[
-                  "countryCode"
-              ]
-
-              country_name = country_names.get(
-                  country.upper(),
-                  country.upper()
-              )
-
-              final_servers.append({
-                  "name": server["name"],
-                  "config": (
-                      server["config"]
-                      + "#"
-                      + country_name
-                  ),
-                  "countryCode": country
-              })
-
-          # ----------------------------------------
-          # Save services.json
-          # ----------------------------------------
-
-          Path(
-              "services.json"
-          ).write_text(
-              json.dumps(
-                  final_servers,
-                  ensure_ascii=False,
-                  indent=2
-              ) + "\n",
-              encoding="utf-8"
-          )
-
-          # ----------------------------------------
-          # Statistics
-          # ----------------------------------------
-
-          print("")
-          print("==============================")
-          print(
-              "Total unique IPs: "
-              f"{len(final_servers)}"
-          )
-          print(
-              "Skipped duplicate IPs: "
-              f"{skipped_duplicates}"
-          )
-          print(
-              "Skipped hostnames: "
-              f"{skipped_hostnames}"
-          )
-          print(
-              "Skipped invalid ports: "
-              f"{skipped_invalid_ports}"
-          )
-          print("==============================")
-          print("")
-
-          PY
-
-      - name: Show generated JSON
-        run: |
-          echo "================ services.json ================"
-          cat services.json
-          echo "================================================"
-
-      - name: Commit changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add services.json
-
-          if git diff --cached --quiet; then
-            echo "No changes detected."
-            exit 0
-          fi
-
-          git commit -m "Update Outline servers"
-
-      - name: Push changes
-        run: |
-          for i in 1 2 3 4 5; do
-
-            echo "Push attempt $i..."
-
-            git fetch origin main
-
-            git rebase origin/main || {
-              echo "Rebase failed."
-              git rebase --abort || true
-              exit 1
-            }
-
-            if git push origin HEAD:main; then
-              echo "Push successful."
-              exit 0
-            fi
-
-            echo "Push failed."
-
-            if [ "$i" -lt 5 ]; then
-              echo "Retrying in 3 seconds..."
-              sleep 3
-            fi
-
-          done
-
-          echo "Push failed after 5 attempts."
-          exit 1
+build:
+runs-on: ubuntu-latest
+timeout-minutes: 40
+
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
+
+  - name: Unzip project and locate it
+    id: proj
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      ZIP=$(find . -maxdepth 1 -type f -name '*.zip' -print -quit)
+
+      if [ -n "$ZIP" ]; then
+        echo "Using zip: $ZIP"
+        rm -rf _proj
+        mkdir -p _proj
+        unzip -q "$ZIP" -d _proj
+        SEARCH_ROOT="_proj"
+      else
+        echo "No zip found; searching for an Android project."
+        SEARCH_ROOT="."
+      fi
+
+      SETTINGS=$(find "$SEARCH_ROOT" \
+        -name 'settings.gradle.kts' \
+        -not -path '*/__MACOSX/*' \
+        -not -path '*/.gradle/*' \
+        -print -quit)
+
+      if [ -z "$SETTINGS" ]; then
+        echo "::error::settings.gradle.kts not found. Check the project ZIP."
+        exit 1
+      fi
+
+      DIR=$(dirname "$SETTINGS")
+      echo "Project directory: $DIR"
+      echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+  - name: Set up JDK 17
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
+
+  - name: Set up Android SDK
+    uses: android-actions/setup-android@v3
+    with:
+      cmdline-tools-version: 'latest'
+
+  - name: Install Android SDK packages
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      sdkmanager --version
+      yes | sdkmanager --licenses >/dev/null || true
+
+      sdkmanager \
+        "platform-tools" \
+        "platforms;android-34" \
+        "build-tools;34.0.0"
+
+  - name: Set up Gradle 8.7
+    uses: gradle/actions/setup-gradle@v4
+    with:
+      gradle-version: '8.7'
+
+  - name: Unit tests
+    if: ${{ github.event_name == 'push' || inputs.run_tests }}
+    working-directory: ${{ steps.proj.outputs.dir }}
+    shell: bash
+    run: |
+      set -o pipefail
+      gradle :app:testDebugUnitTest --stacktrace 2>&1 | tee ../test.log
+
+  - name: Build debug APK
+    working-directory: ${{ steps.proj.outputs.dir }}
+    shell: bash
+    run: |
+      set -o pipefail
+      gradle :app:assembleDebug --stacktrace 2>&1 | tee ../build.log
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: NeonLogic3D-debug-apk
+      path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
+      if-no-files-found: error
+
+  - name: Upload logs and test reports
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: build-logs
+      path: |
+        ${{ steps.proj.outputs.dir }}/../build.log
+        ${{ steps.proj.outputs.dir }}/../test.log
+        ${{ steps.proj.outputs.dir }}/app/build/reports/tests/
+      if-no-files-found: ignore
