@@ -88,14 +88,14 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          gradle :app:testDebugUnitTest --stacktrace 2>&1 | tee ../test.log
+          gradle :app:testDebugUnitTest --stacktrace 2>&1 | tee build.log
 
       - name: Build debug APK
         working-directory: ${{ steps.proj.outputs.dir }}
         shell: bash
         run: |
           set -o pipefail
-          gradle :app:assembleDebug --stacktrace 2>&1 | tee ../build.log
+          gradle :app:assembleDebug --stacktrace 2>&1 | tee build.log
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -110,7 +110,6 @@ jobs:
         with:
           name: build-logs
           path: |
-            ${{ steps.proj.outputs.dir }}/../build.log
-            ${{ steps.proj.outputs.dir }}/../test.log
+            ${{ steps.proj.outputs.dir }}/build.log
             ${{ steps.proj.outputs.dir }}/app/build/reports/tests/
           if-no-files-found: ignore
