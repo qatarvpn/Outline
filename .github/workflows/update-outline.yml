@@ -1,116 +1,116 @@
 name: Build Debug APK
 
 on:
-workflow_dispatch:
-inputs:
-run_tests:
-description: "Run unit tests before building"
-type: boolean
-default: true
-push:
-paths:
-- "*.zip"
-- ".github/workflows/build-apk.yml"
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: "Run unit tests before building"
+        type: boolean
+        default: true
+  push:
+    paths:
+      - "*.zip"
+      - ".github/workflows/build-apk.yml"
 
 permissions:
-contents: read
+  contents: read
 
 jobs:
-build:
-runs-on: ubuntu-latest
-timeout-minutes: 40
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Unzip project and locate it
-    id: proj
-    shell: bash
-    run: |
-      set -euo pipefail
+      - name: Unzip project and locate it
+        id: proj
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      ZIP=$(find . -maxdepth 1 -type f -name '*.zip' -print -quit)
+          ZIP=$(find . -maxdepth 1 -type f -name '*.zip' -print -quit)
 
-      if [ -n "$ZIP" ]; then
-        echo "Using zip: $ZIP"
-        rm -rf _proj
-        mkdir -p _proj
-        unzip -q "$ZIP" -d _proj
-        SEARCH_ROOT="_proj"
-      else
-        echo "No zip found; searching for an Android project."
-        SEARCH_ROOT="."
-      fi
+          if [ -n "$ZIP" ]; then
+            echo "Using zip: $ZIP"
+            rm -rf _proj
+            mkdir -p _proj
+            unzip -q "$ZIP" -d _proj
+            SEARCH_ROOT="_proj"
+          else
+            echo "No zip found; searching for an Android project."
+            SEARCH_ROOT="."
+          fi
 
-      SETTINGS=$(find "$SEARCH_ROOT" \
-        -name 'settings.gradle.kts' \
-        -not -path '*/__MACOSX/*' \
-        -not -path '*/.gradle/*' \
-        -print -quit)
+          SETTINGS=$(find "$SEARCH_ROOT" \
+            -name 'settings.gradle.kts' \
+            -not -path '*/__MACOSX/*' \
+            -not -path '*/.gradle/*' \
+            -print -quit)
 
-      if [ -z "$SETTINGS" ]; then
-        echo "::error::settings.gradle.kts not found. Check the project ZIP."
-        exit 1
-      fi
+          if [ -z "$SETTINGS" ]; then
+            echo "::error::settings.gradle.kts not found. Check the project ZIP."
+            exit 1
+          fi
 
-      DIR=$(dirname "$SETTINGS")
-      echo "Project directory: $DIR"
-      echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+          DIR=$(dirname "$SETTINGS")
+          echo "Project directory: $DIR"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
-  - name: Set up JDK 17
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '17'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-  - name: Set up Android SDK
-    uses: android-actions/setup-android@v3
-    with:
-      cmdline-tools-version: 'latest'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 'latest'
 
-  - name: Install Android SDK packages
-    shell: bash
-    run: |
-      set -euo pipefail
-      sdkmanager --version
-      yes | sdkmanager --licenses >/dev/null || true
-      sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --version
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-  - name: Set up Gradle 8.7
-    uses: gradle/actions/setup-gradle@v4
-    with:
-      gradle-version: '8.7'
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
-  - name: Unit tests
-    if: ${{ github.event_name == 'push' || inputs.run_tests }}
-    working-directory: ${{ steps.proj.outputs.dir }}
-    shell: bash
-    run: |
-      set -o pipefail
-      gradle :app:testDebugUnitTest --stacktrace 2>&1 | tee ../test.log
+      - name: Unit tests
+        if: ${{ github.event_name == 'push' || inputs.run_tests }}
+        working-directory: ${{ steps.proj.outputs.dir }}
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest --stacktrace 2>&1 | tee ../test.log
 
-  - name: Build debug APK
-    working-directory: ${{ steps.proj.outputs.dir }}
-    shell: bash
-    run: |
-      set -o pipefail
-      gradle :app:assembleDebug --stacktrace 2>&1 | tee ../build.log
+      - name: Build debug APK
+        working-directory: ${{ steps.proj.outputs.dir }}
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --stacktrace 2>&1 | tee ../build.log
 
-  - name: Upload APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: NeonLogic3D-debug-apk
-      path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
-      if-no-files-found: error
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeonLogic3D-debug-apk
+          path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
 
-  - name: Upload logs and test reports
-    if: always()
-    uses: actions/upload-artifact@v4
-    with:
-      name: build-logs
-      path: |
-        ${{ steps.proj.outputs.dir }}/../build.log
-        ${{ steps.proj.outputs.dir }}/../test.log
-        ${{ steps.proj.outputs.dir }}/app/build/reports/tests/
-      if-no-files-found: ignore
+      - name: Upload logs and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ${{ steps.proj.outputs.dir }}/../build.log
+            ${{ steps.proj.outputs.dir }}/../test.log
+            ${{ steps.proj.outputs.dir }}/app/build/reports/tests/
+          if-no-files-found: ignore
